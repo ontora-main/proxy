@@ -54,7 +54,9 @@ export function ConnectMcpForm({
 	const [name, setName] = useState(params.get('name') ?? '');
 	const [url, setUrl] = useState(params.get('url') ?? '');
 	const [token, setToken] = useState('');
-	const [serviceName, setServiceName] = useState('');
+	const [serviceName, setServiceName] = useState(
+		() => MCP_SERVICES.find((entry) => entry.name === params.get('name'))?.name ?? '',
+	);
 	const service = MCP_SERVICES.find((entry) => entry.name === serviceName);
 	// Sent again from the browser for the desktop app.
 	const fromDesktop = params.get('desktop') === '1';

@@ -6,7 +6,8 @@ import {Badge} from '@proxy/ui/components/badge';
 import {buttonVariants} from '@proxy/ui/components/button';
 import {cn} from '@proxy/ui/lib/utils';
 import {KeyRoundIcon, PlusIcon} from 'lucide-react';
-import {IntegrationLogo} from '@/components/brand-logo';
+import {MCP_SERVICES, serviceForAccount} from '@/lib/mcp-services';
+import {IntegrationLogo, McpServiceLogo} from '@/components/brand-logo';
 import {ConnectWithKeyDialog} from '@/components/connect-with-key-dialog';
 import {IconButton} from '@/components/icon-button';
 import {RowList} from '@/components/row-list';
@@ -156,6 +157,45 @@ export function IntegrationCatalog({
 									</IconButton>
 								</span>
 							)}
+						</li>
+					);
+				})}
+
+				{MCP_SERVICES.filter((service) => !service.integrationId).map((service) => {
+					const query = new URLSearchParams({
+						name: service.name,
+						...(service.url ? {url: service.url} : {}),
+						...(shared ? {for: 'everyone'} : {}),
+					});
+					const href = `/${org}/${returnTo === 'welcome' ? 'welcome/connections' : 'connections/new'}/mcp?${query}`;
+					const count = connections.filter(
+						(connection) =>
+							connection.integrationId === 'mcp' &&
+							serviceForAccount(connection.account)?.name === service.name,
+					).length;
+					return (
+						<li key={service.name} className="-mx-(--bleed) flex items-center">
+							<a href={href} className={ROW}>
+								<McpServiceLogo service={service} className="size-7" />
+								<span className="grid min-w-0 flex-1">
+									<span className="flex items-baseline gap-2">
+										<span className="truncate">{service.name}</span>
+										{count > 0 && (
+											<Badge variant="secondary" className="shrink-0 font-normal tabular-nums">
+												{count} connected
+											</Badge>
+										)}
+									</span>
+									<span className="text-sm text-muted-foreground">
+										{service.url
+											? 'Connect your account and choose which tools agents can use'
+											: 'Connect with your own server address'}
+									</span>
+								</span>
+								<span className={PLUS}>
+									<PlusIcon />
+								</span>
+							</a>
 						</li>
 					);
 				})}

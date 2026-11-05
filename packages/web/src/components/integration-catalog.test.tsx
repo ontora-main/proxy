@@ -65,6 +65,25 @@ function renderCatalog(args: {
 }
 
 describe('IntegrationCatalog', () => {
+	test('shows preset connectors directly with brand icons and prefilled form links', () => {
+		const row = renderCatalog({name: 'Vercel'});
+		const link = row.getByRole('link');
+		const url = new URL(link.getAttribute('href') ?? '', 'https://proxy.example.com');
+		expect(url.pathname).toBe('/org-1/connections/new/mcp');
+		expect(url.searchParams.get('name')).toBe('Vercel');
+		expect(url.searchParams.get('url')).toBe('https://mcp.vercel.com');
+		expect(link.querySelector('img')?.getAttribute('src')).toBe('/api/favicons/mcp.vercel.com');
+	});
+	test('lists connectors needing a custom address without inventing an endpoint', () => {
+		const row = renderCatalog({name: 'ElevenLabs'});
+		const url = new URL(
+			row.getByRole('link').getAttribute('href') ?? '',
+			'https://proxy.example.com',
+		);
+		expect(url.searchParams.get('name')).toBe('ElevenLabs');
+		expect(url.searchParams.has('url')).toBe(false);
+	});
+
 	test('Google without its client on the server is greyed out, saying what to set and where the docs are', () => {
 		const row = renderCatalog({google: false, connections: [google]});
 

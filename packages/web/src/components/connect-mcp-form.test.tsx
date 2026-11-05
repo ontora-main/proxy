@@ -5,7 +5,7 @@ import {ConnectMcpForm} from './connect-mcp-form';
 
 afterEach(cleanup);
 
-function renderForm(shared = false, returnTo?: 'welcome') {
+function renderForm(shared = false, returnTo?: 'welcome', query = '') {
 	const router = createMemoryRouter(
 		[
 			{
@@ -13,7 +13,7 @@ function renderForm(shared = false, returnTo?: 'welcome') {
 				element: <ConnectMcpForm shared={shared} returnTo={returnTo} onConnected={mock()} />,
 			},
 		],
-		{initialEntries: ['/team/connections/new/mcp']},
+		{initialEntries: [`/team/connections/new/mcp${query}`]},
 	);
 	render(<RouterProvider router={router} />);
 }
@@ -23,6 +23,13 @@ function choose(name: string) {
 }
 
 describe('MCP service connections', () => {
+	test('opens a catalog preset with its service and authentication guidance selected', () => {
+		renderForm(false, undefined, '?name=GitHub&url=https%3A%2F%2Fapi.githubcopilot.com%2Fmcp%2F');
+		expect((screen.getByLabelText('Service') as HTMLSelectElement).value).toBe('GitHub');
+		expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('GitHub');
+		expect(screen.getByText(/Use a GitHub personal access token/)).toBeDefined();
+	});
+
 	test('prefills hosted services and clears the previous service token', () => {
 		renderForm();
 		choose('Vercel');

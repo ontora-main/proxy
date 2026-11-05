@@ -2,6 +2,7 @@ import {findAgentProvider} from '@proxy/utils/agent-providers';
 import {cn} from '@proxy/ui/lib/utils';
 import {useState, type ReactNode} from 'react';
 import type {Integration} from '@/lib/integrations';
+import {serviceLogoHost, type McpService} from '@/lib/mcp-services';
 
 // Logos sit on a white tile in both themes, so dark marks stay legible. They're decorative: the
 // text beside one always names it.
@@ -75,6 +76,22 @@ export function IntegrationLogo({
 	return (
 		<LogoTile className={className}>
 			<integration.logo data-preserve-color className="size-[60%] text-neutral-500" />
+		</LogoTile>
+	);
+}
+
+export function McpServiceLogo({service, className}: {service: McpService; className?: string}) {
+	const host = serviceLogoHost(service);
+	const src = host ? `/api/favicons/${encodeURIComponent(host)}` : '/favicon.svg';
+	const [failed, setFailed] = useState<string | null>(null);
+	return (
+		<LogoTile className={className}>
+			<img
+				src={failed === src ? '/favicon.svg' : src}
+				alt=""
+				onError={() => setFailed(src)}
+				className="size-full object-contain p-[2px]"
+			/>
 		</LogoTile>
 	);
 }
