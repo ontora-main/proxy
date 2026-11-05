@@ -109,7 +109,9 @@ export function IntegrationCatalog({
 								<span
 									className={cn('truncate text-sm text-muted-foreground', unmet && 'opacity-50')}
 								>
-									{integration.description}
+									{integration.id === 'mcp'
+										? 'Choose a service or enter your own MCP server address'
+										: integration.description}
 								</span>
 								{unmet && (
 									<span className="text-sm text-muted-foreground">

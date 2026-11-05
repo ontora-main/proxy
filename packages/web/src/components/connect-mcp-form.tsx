@@ -2,8 +2,11 @@ import type {Connection} from '@proxy/contracts/connections';
 import type {FetchError} from '@proxy/utils';
 import {useState, type ReactNode} from 'react';
 import {useSearchParams} from 'react-router';
+import {MCP_SERVICES} from '@/lib/mcp-services';
 import {connectMcp} from '@/client/connections-client';
-import {Button} from '@proxy/ui/components/button';
+import {Button, buttonVariants} from '@proxy/ui/components/button';
+import {signInPath} from '@/lib/integrations';
+import {onSignInClick} from '@/lib/desktop';
 import {Input} from '@proxy/ui/components/input';
 import {Label} from '@proxy/ui/components/label';
 import {apiMessage} from '@/lib/agent-errors';
@@ -51,12 +54,18 @@ export function ConnectMcpForm({
 	const [name, setName] = useState(params.get('name') ?? '');
 	const [url, setUrl] = useState(params.get('url') ?? '');
 	const [token, setToken] = useState('');
+	const [serviceName, setServiceName] = useState('');
+	const service = MCP_SERVICES.find((entry) => entry.name === serviceName);
 	// Sent again from the browser for the desktop app.
 	const fromDesktop = params.get('desktop') === '1';
 	const [error, setError] = useState<string | null>(null);
 	const [notice, setNotice] = useState<string | null>(null);
 	const [pending, setPending] = useState<'connecting' | 'signingIn' | null>(null);
-	const ready = name.trim() !== '' && url.trim() !== '';
+	const ready = !service?.integrationId && name.trim() !== '' && url.trim() !== '';
+	const builtInPath = service?.integrationId
+		? (signInPath(org, service.integrationId, {returnTo, share: shared ? 'everyone' : undefined}) ??
+			`/${org}/${returnTo === 'welcome' ? 'welcome/connections' : 'connections/new'}/${service.integrationId}${shared ? '?for=everyone' : ''}`)
+		: null;
 	const form = useCommandEnterSubmit(ready && pending === null);
 
 	return (
@@ -65,6 +74,9 @@ export function ConnectMcpForm({
 			className="grid gap-4"
 			onSubmit={async (event) => {
 				event.preventDefault();
+				if (!ready || pending !== null) {
+					return;
+				}
 				setPending('connecting');
 				setError(null);
 				setNotice(null);
@@ -109,60 +121,101 @@ export function ConnectMcpForm({
 			}}
 		>
 			<div className="grid gap-2">
-				<Label htmlFor="mcp-name">Name</Label>
-				<Input
-					id="mcp-name"
-					autoComplete="off"
-					maxLength={80}
-					placeholder="Company docs"
-					value={name}
-					onChange={(event) => setName(event.target.value)}
-				/>
-				<p className="text-sm text-muted-foreground">
-					What this connection is called here and to agents.
-				</p>
+				<Label htmlFor="mcp-service">Service</Label>
+				<select
+					id="mcp-service"
+					className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+					value={serviceName}
+					disabled={pending !== null}
+					onChange={(event) => {
+						const selected = MCP_SERVICES.find((entry) => entry.name === event.target.value);
+						setServiceName(event.target.value);
+						setName(selected?.name ?? '');
+						setUrl(selected?.url ?? '');
+						setToken('');
+						setError(null);
+						setNotice(null);
+					}}
+				>
+					<option value="">Custom MCP server</option>
+					{MCP_SERVICES.map((entry) => (
+						<option key={entry.name} value={entry.name}>
+							{entry.name}
+						</option>
+					))}
+				</select>
+				{service && <p className="text-sm text-muted-foreground">{service.note}</p>}
+				{builtInPath && (
+					<a
+						href={builtInPath}
+						onClick={onSignInClick}
+						className={buttonVariants({variant: 'outline'})}
+					>
+						Connect {service?.name}
+					</a>
+				)}
 			</div>
-			<div className="grid gap-2">
-				<Label htmlFor="mcp-url">Server address</Label>
-				<Input
-					id="mcp-url"
-					type="url"
-					autoComplete="off"
-					placeholder="https://mcp.example.com/mcp"
-					value={url}
-					onChange={(event) => setUrl(event.target.value)}
-				/>
-				<p className="text-sm text-muted-foreground">
-					The server's MCP address, reachable from the internet over https. A server that asks you
-					to sign in opens its sign-in page.
-				</p>
-			</div>
-			<div className="grid gap-2">
-				<Label htmlFor="mcp-token">Access token (optional)</Label>
-				<Input
-					id="mcp-token"
-					type="password"
-					{...NO_PASSWORD_MANAGER}
-					value={token}
-					onChange={(event) => setToken(event.target.value)}
-				/>
-				<p className="text-sm text-muted-foreground">
-					Only where the server takes a token or API key instead of a sign-in. It is sent as a
-					bearer token with every request, or as written when it starts with its scheme, such as{' '}
-					<code>Basic …</code>.
-				</p>
-			</div>
+			{!builtInPath && (
+				<>
+					<div className="grid gap-2">
+						<Label htmlFor="mcp-name">Name</Label>
+						<Input
+							id="mcp-name"
+							autoComplete="off"
+							maxLength={80}
+							placeholder="Company docs"
+							value={name}
+							onChange={(event) => setName(event.target.value)}
+						/>
+						<p className="text-sm text-muted-foreground">
+							What this connection is called here and to agents.
+						</p>
+					</div>
+					<div className="grid gap-2">
+						<Label htmlFor="mcp-url">Server address</Label>
+						<Input
+							id="mcp-url"
+							type="url"
+							autoComplete="off"
+							placeholder="https://mcp.example.com/mcp"
+							value={url}
+							onChange={(event) => setUrl(event.target.value)}
+						/>
+						<p className="text-sm text-muted-foreground">
+							The server's MCP address, reachable from the internet over https. A server that asks
+							you to sign in opens its sign-in page.
+						</p>
+					</div>
+					<div className="grid gap-2">
+						<Label htmlFor="mcp-token">Access token (optional)</Label>
+						<Input
+							id="mcp-token"
+							type="password"
+							{...NO_PASSWORD_MANAGER}
+							value={token}
+							onChange={(event) => setToken(event.target.value)}
+						/>
+						<p className="text-sm text-muted-foreground">
+							Only where the server takes a token or API key instead of a sign-in. It is sent as a
+							bearer token with every request, or as written when it starts with its scheme, such as{' '}
+							<code>Basic …</code>.
+						</p>
+					</div>
+				</>
+			)}
 			{error && <p className="text-sm text-destructive">{error}</p>}
 			{notice && <p className="text-sm text-muted-foreground">{notice}</p>}
 			<div className="flex justify-end gap-2">
 				{cancel}
-				<Button type="submit" disabled={!ready || pending !== null}>
-					{pending === 'signingIn'
-						? 'Opening sign-in…'
-						: pending === 'connecting'
-							? 'Connecting…'
-							: 'Connect'}
-				</Button>
+				{!builtInPath && (
+					<Button type="submit" disabled={!ready || pending !== null}>
+						{pending === 'signingIn'
+							? 'Opening sign-in…'
+							: pending === 'connecting'
+								? 'Connecting…'
+								: 'Connect'}
+					</Button>
+				)}
 			</div>
 		</form>
 	);
