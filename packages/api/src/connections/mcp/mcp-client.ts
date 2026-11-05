@@ -5,6 +5,7 @@ import {ApiErr, type ApiError, Do, parseSchema} from '@proxy/utils';
 import {mcpToolSchema, type McpTool} from '@proxy/integrations';
 
 import {checkedRequest} from '../../utils/checked-request';
+import {log} from '../../observability/log';
 import type {McpEndpoint} from './mcp-oauth';
 
 /**
@@ -119,11 +120,13 @@ function post(server: McpEndpoint, accessToken: string | null, session: McpSessi
 			{parse: 'response', timeoutMs: TIMEOUT_MS, allowStatus: (status) => (status >= 200 && status < 300) || status === 403},
 		);
 		if (response.isErr() && response.error.kind === 'http' && response.error.status === 401) {
+			log.warn('MCP request credential rejected', {provider: server.name, method: message.method, status: 401});
 			return $(Err(ApiErr.credentialsRejected()));
 		}
 
 		const answer = $(response.mapErr((error) => ApiErr.providerUnreachable(error)));
 		if (answer.status === 403) {
+			log.warn('MCP request forbidden', {provider: server.name, method: message.method, status: 403});
 			// Its body is never read, so it is let go, for the connection to be used again.
 			await Result.wrapAsync(async () => answer.body?.cancel());
 			return $(Err(forbidden(server, answer.headers.get('www-authenticate'))));
