@@ -16,7 +16,7 @@ services:
           property: connectionString
       # Confirm the assigned hostname before the first sign-in.
       - key: APP_URL
-        value: https://ontora-proxy.onrender.com
+        value: https://ontora-proxy-q200.onrender.com
       - key: AUTH_SECRET
         generateValue: true
       # This is a fresh database. Preserve this key through subsequent deployments.
@@ -30,6 +30,7 @@ services:
 databases:
   - name: ontora-proxy-db
     plan: 0.1c-256mb
+    diskSizeGB: 1
     region: oregon
     postgresMajorVersion: '17'
     databaseName: proxy
