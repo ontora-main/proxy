@@ -6,6 +6,7 @@ import {
 	type IntegrationId,
 	type McpTool,
 } from '@proxy/integrations';
+import {serviceForAccount, serviceLogoHost} from '@/lib/mcp-services';
 import {orgApi} from '@/client/request';
 
 // A brand's own logo, `public/integrations/<id>.svg`, unless `LOGOS` says otherwise. One found on
@@ -77,6 +78,12 @@ export function findIntegration(id: string): Integration | undefined {
  * the address, with our mark where there is none.
  */
 function serverLogo(account: string): IntegrationLogoImage {
+	const service = serviceForAccount(account);
+	const host = service && serviceLogoHost(service);
+	if (host) {
+		return {src: `/api/favicons/${encodeURIComponent(host)}`, fallback: MCP_MARK};
+	}
+
 	const address = `https://${account}`;
 	if (!URL.canParse(address)) {
 		return {src: MCP_MARK};

@@ -213,3 +213,39 @@ export const MCP_SERVICES: McpService[] = [
 		note: 'Connect to the hosted MCP server. Sign in when prompted, or supply a token if required.',
 	},
 ];
+
+/** Brand sites for services whose MCP host belongs to a different domain. */
+const BRAND_HOSTS: Record<string, string> = {
+	GitHub: 'github.com',
+	'Rho MCP': 'rho.co',
+	'YC Bookface': 'ycombinator.com',
+	WhatsApp: 'whatsapp.com',
+	'WhatsApp MCP': 'whatsapp.com',
+	'iCloud Calendar': 'icloud.com',
+	'iCloud Mail': 'icloud.com',
+	LinkedIn: 'linkedin.com',
+	Ontora: 'ontora.com',
+	'Ontora Company Brain': 'ontora.com',
+	ElevenLabs: 'elevenlabs.io',
+	'Cal.com': 'cal.com',
+	'Twilio Developer Kit': 'twilio.com',
+	'Plugin Creator': 'openai.com',
+	'Writing Style': 'openai.com',
+};
+
+export function serviceLogoHost(service: McpService): string | null {
+	const host = BRAND_HOSTS[service.name];
+	if (host) {
+		return host;
+	}
+	if (!service.url) {
+		return null;
+	}
+	return new URL(service.url).hostname;
+}
+
+export function serviceForAccount(account: string): McpService | undefined {
+	return MCP_SERVICES.find(
+		(service) => service.url && new URL(service.url).host === account.split('/')[0],
+	);
+}
