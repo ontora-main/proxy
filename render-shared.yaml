@@ -8,6 +8,8 @@ services:
     region: oregon
     plan: 0.5c-512mb
     healthCheckPath: /health
+    domains:
+      - proxy.ontora.com
     renderSubdomainPolicy: disabled
     autoDeployTrigger: 'off'
     envVars:
