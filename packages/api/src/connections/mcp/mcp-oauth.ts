@@ -4,6 +4,7 @@ import {z} from 'zod';
 import {ApiErr, type ApiError, type FetchError} from '@proxy/utils';
 
 import {checkedRequest} from '../../utils/checked-request';
+import {log} from '../../observability/log';
 
 /**
  * Signing in to an MCP server, as the MCP spec asks of every client: OAuth 2.0 with PKCE against
@@ -137,6 +138,18 @@ async function requestTokens(server: McpServer, clientId: string, params: Record
 		},
 		{schema: tokensSchema, timeoutMs: TIMEOUT_MS},
 	);
+	if (tokens.isErr()) {
+		const error = tokens.error;
+		// Keep provider response bodies and credentials out of logs.
+		const oauthError = error.kind === 'http' ? z.object({error: z.enum(['invalid_request', 'invalid_client', 'invalid_grant', 'unauthorized_client', 'unsupported_grant_type', 'invalid_scope', 'invalid_target'])}).safeParse(error.body) : null;
+		log.warn('MCP token request failed', {
+			provider: server.name,
+			grantType: params.grant_type,
+			kind: error.kind,
+			...(error.kind === 'http' ? {status: error.status} : {}),
+			...(oauthError?.success ? {oauthError: oauthError.data.error} : {}),
+		});
+	}
 	return tokens.mapErr(mcpAuthError).map((value) => ({
 		clientId,
 		accessToken: value.access_token,
