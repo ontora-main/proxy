@@ -27,11 +27,13 @@ import {
 
 import {callCustomTool} from '../connections/custom/custom-mcp';
 import {apiIntegration} from '../connections/integrations';
+import {toolMetrics} from '../observability/metrics';
 import {needsSignIn, signInNeededError, unavailableActions, unavailableError} from '../connections/unavailable';
 import {isRecordStore, type Connector, type DataRecord, type RecordStore, type RecordTarget, type RecordValues} from '../records/connector';
 import {connectorFor} from '../records/connectors';
 import {parseRecordValues} from '../records/record-values';
 import {loadConnection} from '../records/target';
+import {log as serverLog} from '../observability/log';
 import {integrationOf} from '../utils/connection-actions';
 import {requireOpenTaskIfAny} from '../mcp/pre-task-clients';
 import {ensureSandboxConnections} from '../native/sandbox/connections';
@@ -154,8 +156,21 @@ function recordTitle(collection: Collection, values: RecordValues): string | nul
 
 type Outcome = 'allowed' | 'denied' | 'failed';
 
+// The metrics' side of an entry: the kind of error alone of what went wrong, never the status.
+function recordToolCall(caller: TaskCaller, connection: ConnectionRow, action: string, outcome: Outcome, startedAt: number, error?: string): void {
+	toolMetrics.recordToolCall({
+		surface: caller.via,
+		integration: connection.integrationId,
+		action,
+		outcome,
+		durationMs: Date.now() - startedAt,
+		errorKind: error?.split(' ')[0],
+	});
+}
+
 // `query` is what a list searched for, and `error` what went wrong, for a failed run.
 function log(run: ToolRun, outcome: Outcome, title: string | null, query: string | null = null, error?: string): Promise<Result<void, ApiError>> {
+	recordToolCall(run.caller, run.target.connection, run.tool.operation, outcome, run.startedAt, error);
 	return logAgentRequest({
 		orgId: run.caller.agent.orgId,
 		agentId: run.caller.agent.agentId,
@@ -185,9 +200,26 @@ function failureOf(error: ApiError): string {
 
 // What a call to the provider answered; one that failed is logged as failed first, with `title`
 // and `query` as an allowed one would have been.
+// The server's log of a provider failing: the error's kind and, for a request that failed, where
+// it went and what came back as far as its status, never the provider's words.
+const fetchCauseSchema = z.object({kind: z.string(), url: z.string().optional(), status: z.number().optional()});
+
+function warnFailure(run: ToolRun, error: ApiError): void {
+	const cause = 'cause' in error ? fetchCauseSchema.safeParse(error.cause) : null;
+	const inner = 'cause' in error && error.cause instanceof Error ? {causeName: error.cause.name, causeMessage: error.cause.message} : {};
+	serverLog.warn('A tool run failed at the provider', {
+		kind: error.kind,
+		integrationId: run.target.connection.integrationId,
+		tool: run.tool.name,
+		...(cause?.success ? {cause: cause.data} : {}),
+		...inner,
+	});
+}
+
 function logFailure<T>(run: ToolRun, answer: Result<T, ApiError>, title: string | null, query: string | null = null): Promise<Result<T, ApiError>> {
 	return Do(async ($) => {
 		if (answer.isErr()) {
+			warnFailure(run, answer.error);
 			$(await log(run, 'failed', title, query, failureOf(answer.error)));
 		}
 		return $(answer);
@@ -307,8 +339,9 @@ function runParamsTool(
 			return $(Err(ApiErr.validationError(`${tool.name} takes an object of params`)));
 		}
 		const logged = loggedParams(args);
-		const logRun = (outcome: Outcome, error?: string) =>
-			logAgentRequest({
+		const logRun = (outcome: Outcome, error?: string) => {
+			recordToolCall(caller, connection, tool.action, outcome, startedAt, error);
+			return logAgentRequest({
 				orgId: caller.agent.orgId,
 				agentId: caller.agent.agentId,
 				connectionId: connection.id,
@@ -323,6 +356,7 @@ function runParamsTool(
 				startedAt,
 				error,
 			});
+		};
 		const unavailable = unavailableActions(connection);
 		const actions = actionsOf(agent, connection, integration, unavailable);
 		const missing = [tool.action, tool.requires].find((actionId) => actionId !== undefined && !actions.includes(actionId));

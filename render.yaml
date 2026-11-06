@@ -36,6 +36,7 @@ services:
         - packages/backends/**
         - packages/db/**
         - packages/integrations/**
+        - packages/observability/**
         - packages/ui/**
         - packages/utils/**
         - packages/web/**
@@ -83,6 +84,20 @@ services:
       # Hosted Personal Agent Proxy is not an installation to count.
       - key: TELEMETRY_ENABLED
         value: 'false'
+      # Where the log and the metrics go: the Loki and the Prometheus the internal repo
+      # (personalagentproxy/internal) runs beside this service, each by the address Render gave it
+      # on the private network, `host:port` with no scheme, as the sandbox service above; neither
+      # takes auth. A Blueprint only fills in its own services' addresses, so these are written
+      # here: a service made anew in Render gets a new suffix, and its address here has to follow.
+      - key: LOKI_URL
+        value: loki-6lgn:3100
+      - key: METRICS_OTLP_URL
+        value: prometheus-zk70:9090
+      # Where sign-ups are posted (packages/observability/README.md); optional.
+      - key: SLACK_BOT_TOKEN
+        sync: false
+      - key: SLACK_CHANNEL_SIGNUPS
+        sync: false
 
   # The docs, exported as plain files (packages/docs/next.config.ts). Render serves out/404.html
   # for a missing path.

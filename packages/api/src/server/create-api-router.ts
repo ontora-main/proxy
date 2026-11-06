@@ -43,6 +43,7 @@ import {
 } from '../connections/route';
 import {handleFaviconRoute} from '../favicons/route';
 import {alertRoutes} from '../harness/alerts-route';
+import {handleClientLogsRoute} from '../observability/client-logs';
 import {chatRoutes} from '../harness/route';
 import {harnessStore} from '../harness/store';
 import {handleFillIntentRoute, handlePickIntentRoute} from '../intent/route';
@@ -106,6 +107,10 @@ export function createApiRouter(): express.Router {
 	// session and sends no Origin, so the code and its verifier are the guard there.
 	router.post('/auth/desktop/code', requireBrowserOrigin, withAuthResult('Desktop code route', handleDesktopCodeRoute));
 	router.post('/auth/desktop/session', wrapAsyncRoute('Desktop session route', handleDesktopSessionRoute));
+
+	// The web app's log lines, written on as its (observability/client-logs.ts).
+	router.use('/api/client-logs', requireBrowserOrigin);
+	router.post('/api/client-logs', withAuthResult('Client logs route', handleClientLogsRoute));
 
 	router.use('/api/me', requireBrowserOrigin);
 	router.get('/api/me', withAuthResult('Me route', handleMeRoute));
@@ -205,11 +210,13 @@ export function createApiRouter(): express.Router {
 	// message queues its work.
 	const chat = chatRoutes(harnessStore);
 	org.get('/chat/personas', withAuthResult('List personas route', chat.handleListPersonasRoute));
+	org.get('/chat/answers', withAuthResult('List answers route', chat.handleListAnswersRoute));
 	org.post('/chat/personas', withAuthResult('Create persona route', chat.handleCreatePersonaRoute));
 	org.put('/chat/personas/:personaId', withAuthResult('Update persona route', chat.handleUpdatePersonaRoute));
 	org.delete('/chat/personas/:personaId', withAuthResult('Delete persona route', chat.handleDeletePersonaRoute));
 	org.get('/chat/personas/:personaId/thread', withAuthResult('Get chat thread route', chat.handleGetThreadRoute));
 	org.post('/chat/personas/:personaId/messages', withAuthResult('Post chat message route', chat.handlePostMessageRoute));
+	org.post('/chat/personas/:personaId/read', withAuthResult('Mark chat read route', chat.handleMarkReadRoute));
 	// The Alerts page: what the agents set in the member's conversations, to be woken outside them.
 	const alerts = alertRoutes(harnessStore);
 	org.get('/alerts', withAuthResult('List alerts route', alerts.handleListAlertsRoute));
