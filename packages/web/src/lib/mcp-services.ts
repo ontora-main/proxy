@@ -2,6 +2,8 @@ import type {IntegrationId} from '@proxy/integrations';
 
 export type McpService = {
 	name: string;
+	hostedBy?: string;
+	logo?: string;
 	integrationId?: IntegrationId;
 	url?: string;
 	note: string;
@@ -47,10 +49,7 @@ export const MCP_SERVICES: McpService[] = [
 	},
 	{
 		name: 'WhatsApp',
-		note: 'Ask your team administrator for the hosted MCP server address and its authentication requirements.',
-	},
-	{
-		name: 'WhatsApp MCP',
+		hostedBy: 'Ontora Hosted',
 		url: 'https://whatsapp.ontora.com/mcp',
 		note: 'Connect to the hosted MCP server. Sign in when prompted, or supply a token if required.',
 	},
@@ -93,6 +92,7 @@ export const MCP_SERVICES: McpService[] = [
 	},
 	{
 		name: 'Clerk',
+		logo: '/integrations/clerk.svg',
 		url: 'https://mcp.clerk.com/mcp',
 		note: 'Connect to the hosted MCP server. Sign in when prompted, or supply a token if required.',
 	},
@@ -145,6 +145,7 @@ export const MCP_SERVICES: McpService[] = [
 	},
 	{
 		name: 'PostHog',
+		logo: '/integrations/posthog.svg',
 		url: 'https://mcp.posthog.com/mcp',
 		note: 'Connect to the hosted MCP server. Sign in when prompted, or supply a token if required.',
 	},
@@ -194,6 +195,7 @@ export const MCP_SERVICES: McpService[] = [
 	},
 	{
 		name: 'Supabase',
+		logo: '/integrations/supabase.svg',
 		url: 'https://mcp.supabase.com/mcp',
 		note: 'Connect to the hosted MCP server. Sign in when prompted, or supply a token if required.',
 	},
@@ -220,7 +222,6 @@ const BRAND_HOSTS: Record<string, string> = {
 	'Rho MCP': 'rho.co',
 	'YC Bookface': 'ycombinator.com',
 	WhatsApp: 'whatsapp.com',
-	'WhatsApp MCP': 'whatsapp.com',
 	'iCloud Calendar': 'icloud.com',
 	'iCloud Mail': 'icloud.com',
 	LinkedIn: 'linkedin.com',
