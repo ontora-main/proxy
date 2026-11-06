@@ -82,7 +82,7 @@ export function IntegrationLogo({
 
 export function McpServiceLogo({service, className}: {service: McpService; className?: string}) {
 	const host = serviceLogoHost(service);
-	const src = host ? `/api/favicons/${encodeURIComponent(host)}` : '/favicon.svg';
+	const src = service.logo ?? (host ? `/api/favicons/${encodeURIComponent(host)}` : '/favicon.svg');
 	const [failed, setFailed] = useState<string | null>(null);
 	return (
 		<LogoTile className={className}>

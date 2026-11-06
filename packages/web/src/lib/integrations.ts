@@ -79,6 +79,9 @@ export function findIntegration(id: string): Integration | undefined {
  */
 function serverLogo(account: string): IntegrationLogoImage {
 	const service = serviceForAccount(account);
+	if (service?.logo) {
+		return {src: service.logo, fallback: MCP_MARK};
+	}
 	const host = service && serviceLogoHost(service);
 	if (host) {
 		return {src: `/api/favicons/${encodeURIComponent(host)}`, fallback: MCP_MARK};

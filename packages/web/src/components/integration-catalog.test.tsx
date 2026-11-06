@@ -65,6 +65,29 @@ function renderCatalog(args: {
 }
 
 describe('IntegrationCatalog', () => {
+	test('shows one Ontora-hosted WhatsApp entry with its configured address', () => {
+		const row = renderCatalog({name: 'WhatsApp'});
+		expect(row.getByText('Ontora Hosted')).toBeDefined();
+		expect(screen.queryByText('WhatsApp MCP')).toBeNull();
+		const url = new URL(
+			row.getByRole('link').getAttribute('href') ?? '',
+			'https://proxy.example.com',
+		);
+		expect(url.searchParams.get('url')).toBe('https://whatsapp.ontora.com/mcp');
+	});
+	for (const [name, slug] of [
+		['Clerk', 'clerk'],
+		['PostHog', 'posthog'],
+		['Supabase', 'supabase'],
+	]) {
+		test(`${name} uses its bundled logo`, () => {
+			const row = renderCatalog({name});
+			expect(row.getByRole('link').querySelector('img')?.getAttribute('src')).toBe(
+				`/integrations/${slug}.svg`,
+			);
+		});
+	}
+
 	test('shows preset connectors directly with brand icons and prefilled form links', () => {
 		const row = renderCatalog({name: 'Vercel'});
 		const link = row.getByRole('link');

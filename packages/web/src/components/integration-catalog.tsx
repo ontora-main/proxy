@@ -187,9 +187,10 @@ export function IntegrationCatalog({
 										)}
 									</span>
 									<span className="text-sm text-muted-foreground">
-										{service.url
-											? 'Connect your account and choose which tools agents can use'
-											: 'Connect with your own server address'}
+										{service.hostedBy ??
+											(service.url
+												? 'Connect your account and choose which tools agents can use'
+												: 'Connect with your own server address')}
 									</span>
 								</span>
 								<span className={PLUS}>
