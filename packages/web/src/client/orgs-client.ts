@@ -1,4 +1,5 @@
 import {
+	renamedOrgSchema,
 	acceptedInvitationSchema,
 	invitationLinkSchema,
 	invitationSchema,
@@ -37,7 +38,7 @@ export function finishOnboarding(org: string) {
 }
 
 export function renameOrg(org: string, name: string) {
-	return apiSend('PATCH', orgApi(org), {name} satisfies z.input<typeof orgNameBodySchema>);
+	return apiRequest('PATCH', orgApi(org), renamedOrgSchema, {name} satisfies z.input<typeof orgNameBodySchema>);
 }
 
 /** Its owner deletes it, every connection in it undone at its provider first. */

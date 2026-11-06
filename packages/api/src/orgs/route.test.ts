@@ -95,7 +95,7 @@ beforeEach(() => {
 	markOrganizationOnboarded.mockResolvedValue(Ok(undefined));
 	removeMembership.mockResolvedValue(Ok(undefined));
 	deleteOwnedOrganization.mockResolvedValue(Ok(true));
-	renameOrganization.mockResolvedValue(Ok(undefined));
+	renameOrganization.mockResolvedValue(Ok({slug: 'acme-inc'}));
 	beforeDisconnectAll.mockResolvedValue(undefined);
 	getUserByEmail.mockResolvedValue(Ok(null));
 	canSignUp.mockReturnValue(true);
@@ -176,7 +176,8 @@ describe('handleFinishOnboardingRoute', () => {
 describe('handleRenameOrgRoute', () => {
 	test('its owner renames it; members can’t', async () => {
 		const {handleRenameOrgRoute} = await import('./route');
-		await handleRenameOrgRoute(makeRequest({}, {name: 'Acme Inc'}));
+		const renamed = await handleRenameOrgRoute(makeRequest({}, {name: 'Acme Inc'}));
+		expect(renamed.unwrap()).toEqual({slug: 'acme-inc'});
 		getMemberOrganization.mockResolvedValue(Ok(membership('member')));
 		const asMember = await handleRenameOrgRoute(makeRequest({}, {name: 'Mine now'}));
 

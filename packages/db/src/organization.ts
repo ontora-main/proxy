@@ -60,13 +60,13 @@ export async function pickAvailableSlugDatabase(
 		};
 	},
 	base: string,
+	orgId?: string,
 ): Promise<string> {
 	let candidate = base;
 	let suffix = 1;
 	while (suffix < 100) {
-		const taken =
-			RESERVED_SLUGS.has(candidate) ||
-			(await tx.organization.findUnique({where: {slug: candidate}, select: {id: true}})) !== null;
+		const existing = await tx.organization.findUnique({where: {slug: candidate}, select: {id: true}});
+		const taken = RESERVED_SLUGS.has(candidate) || (existing !== null && existing.id !== orgId);
 		if (!taken) {
 			return candidate;
 		}
@@ -297,23 +297,30 @@ export async function provisionOrganization(data: {
 	return Err(ApiErr.dbError(new Error(`Slug conflict retries exhausted for base "${base}"`)));
 }
 
-/** Renames an organization, and its connections of `namedIntegrationIds` with it, which are called by its name. */
+/** Renames an organization and its address, retaining its identity and connections. */
 export async function renameOrganization(
 	orgId: string,
 	name: string,
 	namedIntegrationIds: string[],
-): Promise<Result<void, ApiError>> {
-	return (
-		await wrapDb(() =>
-			db.$transaction([
-				db.organization.update({where: {id: orgId}, data: {name}, select: {id: true}}),
-				db.connection.updateMany({
+): Promise<Result<{slug: string}, ApiError>> {
+	const base = buildBaseSlug(name);
+	for (let attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt++) {
+		const result = await wrapDb(() =>
+			db.$transaction(async (tx) => {
+				const slug = await pickAvailableSlugDatabase(tx, base, orgId);
+				await tx.organization.update({where: {id: orgId}, data: {name, slug}});
+				await tx.connection.updateMany({
 					where: {orgId, integrationId: {in: namedIntegrationIds}},
 					data: {account: name},
-				}),
-			]),
-		)
-	).map(() => undefined);
+				});
+				return {slug};
+			}),
+		);
+		if (result.isOk() || !isSlugUniqueConflict(result.error)) {
+			return result;
+		}
+	}
+	return Err(ApiErr.dbError(new Error('Organization rename conflict retries exhausted')));
 }
 
 export type MemberRow = {
