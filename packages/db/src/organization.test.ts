@@ -58,6 +58,10 @@ describe('pickAvailableSlugDatabase', () => {
 		expect(await pickAvailableSlugDatabase(withSlugs(['acme', 'acme-2']), 'acme')).toBe('acme-3');
 	});
 
+	it('keeps the current organization address when saving the same name', async () => {
+		expect(await pickAvailableSlugDatabase(withSlugs(['acme']), 'acme', 'org-acme')).toBe('acme');
+	});
+
 	it('never takes a top-level path of the app or the api', async () => {
 		for (const path of ['api', 'mcp', 'login', 'invite', 'agent', 'oauth', 'assets', 'account']) {
 			expect(await pickAvailableSlugDatabase(withSlugs([]), path)).toBe(`${path}-2`);

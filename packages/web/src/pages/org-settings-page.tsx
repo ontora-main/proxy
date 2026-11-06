@@ -92,7 +92,7 @@ export function OrgSettingsPage() {
 					key={organization.id}
 					open
 					title={`Rename ${organization.name}`}
-					description="What everyone in it sees, in the switcher and on Members."
+					description="Updates the name and organization URL. Bookmarks using the previous URL will need updating."
 					initial={organization.name}
 					allowEmpty={false}
 					onClose={() => setRenaming(false)}
@@ -101,6 +101,7 @@ export function OrgSettingsPage() {
 						if (result.isErr()) {
 							return describeApiError(result.error);
 						}
+						await navigate(`/${result.value.slug}/settings`, {replace: true});
 						await revalidator.revalidate();
 						return null;
 					}}

@@ -96,11 +96,11 @@ export function handleFinishOnboardingRoute(request: AuthenticatedRequest): Prom
 }
 
 /** `PATCH /api/orgs/:org` with `{name}`: its owner renames it, for everyone in it. */
-export function handleRenameOrgRoute(request: AuthenticatedRequest): Promise<Result<void, ApiError>> {
+export function handleRenameOrgRoute(request: AuthenticatedRequest): Promise<Result<{slug: string}, ApiError>> {
 	return Do(async ($) => {
 		const {orgId} = $(await requireOwner(request));
 		const {name} = $(parseSchema(orgNameBodySchema, request.body));
-		$(await renameOrganization(orgId, name, NAMED_AFTER_ORGANIZATION));
+		return $(await renameOrganization(orgId, name, NAMED_AFTER_ORGANIZATION));
 	});
 }
 

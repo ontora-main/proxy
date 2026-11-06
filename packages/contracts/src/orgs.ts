@@ -94,3 +94,6 @@ export type InvitationLink = z.infer<typeof invitationLinkSchema>;
 
 /** `POST /api/invitations/:token/accept`: the organization joined; its slug is where to go next. */
 export const acceptedInvitationSchema = z.object({orgId: z.string(), orgSlug: z.string()});
+
+/** The current address after renaming an organization. */
+export const renamedOrgSchema = z.object({slug: z.string()});
